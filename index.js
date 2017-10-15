@@ -34,7 +34,6 @@ class Ovh {
 
   async request(method, path, params) {
 
-    var endpoint = 'https://' + this.host + this.basePath + path;
 
     // Time drift
     if (!this.apiTimeDiff) {
@@ -43,7 +42,7 @@ class Ovh {
       this.apiTimeDiff = time - Math.round(Date.now() / 1000);
     }
 
-    if (path.indexOf('{') >= 0) {
+    if (path.indexOf('{') != -1) {
       let newPath = path;
       for (let paramKey in params) {
         if (params.hasOwnProperty(paramKey)) {
@@ -55,6 +54,7 @@ class Ovh {
       }
     }
 
+    var endpoint = 'https://' + this.host + this.basePath + path;
 
     let query = Object.assign(url.parse(endpoint), {
       method,
@@ -98,10 +98,14 @@ class Ovh {
       }
     }
 
-    let req = await request(query);
-    let body = await drain(req);
-    var response = JSON.parse(body);
-    return response;
+    try {
+      let req = await request(query, reqBody);
+      let body = await drain(req);
+      var response = JSON.parse(body);
+      return response;
+    } catch(err) {
+      throw `API failure for ${path}`;
+    }
   }
 
 
