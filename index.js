@@ -65,10 +65,9 @@ class Ovh {
     });
 
     // Remove undefined values
-    for (let k in params) {
-      if (!params[k])
+    for (let k in params)
+      if (params[k] == undefined)
         delete params[k];
-    }
 
     let reqBody = null;
 
@@ -78,6 +77,8 @@ class Ovh {
         reqBody = JSON.stringify(params).replace(/[\u0080-\uFFFF]/g, (m) => {
           return '\\u' + ('0000' + m.charCodeAt(0).toString(16)).slice(-4);
         });
+
+
         query.headers['Content-Length'] = reqBody.length;
       }
       else {
@@ -104,6 +105,9 @@ class Ovh {
       var response = JSON.parse(body);
       return response;
     } catch(err) {
+      if(err.res)
+        err = await drain(err.res);
+      console.log("" + err);
       throw `API failure for ${path}`;
     }
   }
