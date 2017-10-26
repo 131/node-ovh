@@ -3,7 +3,7 @@
 const url    = require('url');
 
 const get       = require('mout/object/get');
-const deepMixIn = require('mout/object/deepMixIn');
+const merge     = require('mout/object/merge');
 const rtrim     = require('mout/string/rtrim');
 const reindex   = require('nyks/collection/reindex');
 
@@ -56,7 +56,7 @@ class OVHStorage {
       "X-Auth-Token": token.id,
       "Accept": "application/json"
     };
-    var query = (what, path, xtra) => deepMixIn(url.parse(endpoint(what, path)), {headers}, xtra);
+    var query = (what, path, xtra) => merge(url.parse(endpoint(what, path)), {headers}, xtra);
 
     return {token, endpoints, endpoint, headers, query};
   }
