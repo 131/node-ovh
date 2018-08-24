@@ -1,7 +1,5 @@
 'use strict';
 
-const https   = require('https');
-const crypto  = require('crypto');
 const url     = require('url');
 const querystring = require('querystring');
 
@@ -10,7 +8,7 @@ const request  = promisify(require('nyks/http/request'));
 const sha1    = require('nyks/crypto/sha1');
 const drain   = require('nyks/stream/drain');
 
-  
+
 
 class Ovh {
 
@@ -27,7 +25,7 @@ class Ovh {
     this.host = params.host || 'eu.api.ovh.com';
     this.basePath = params.basePath || '/1.0';
 
-    if (typeof(this.appKey) !== 'string' || typeof(this.appSecret) !== 'string')
+    if(typeof (this.appKey) !== 'string' || typeof (this.appSecret) !== 'string')
       throw new Error('[OVH] You should precise an application key / secret');
   }
 
@@ -36,18 +34,18 @@ class Ovh {
 
 
     // Time drift
-    if (!this.apiTimeDiff) {
+    if(!this.apiTimeDiff) {
       let req = await request('https://' + this.host + this.basePath  + '/auth/time');
       let time = JSON.parse(await drain(req));
       this.apiTimeDiff = time - Math.round(Date.now() / 1000);
     }
 
-    if (path.indexOf('{') != -1) {
+    if(path.indexOf('{') != -1) {
       let newPath = path;
-      for (let paramKey in params) {
-        if (params.hasOwnProperty(paramKey)) {
+      for(let paramKey in params) {
+        if(params.hasOwnProperty(paramKey)) {
           newPath = path.replace('{' + paramKey + '}', params[paramKey]);
-          if (newPath !== path)
+          if(newPath !== path)
             delete params[paramKey];
           path = newPath;
         }
@@ -59,20 +57,21 @@ class Ovh {
     let query = Object.assign(url.parse(endpoint), {
       method,
       headers : {
-        'Content-Type': 'application/json',
-        'X-Ovh-Application': this.appKey,
+        'Content-Type' : 'application/json',
+        'X-Ovh-Application' : this.appKey,
       }
     });
 
     // Remove undefined values
-    for (let k in params)
-      if (params[k] == undefined)
+    for(let k in params) {
+      if(params[k] == undefined)
         delete params[k];
+    }
 
     let reqBody = null;
 
-    if (typeof(params) === 'object' && Object.keys(params).length > 0) {
-      if (method === 'PUT' || method === 'POST') {
+    if(typeof (params) === 'object' && Object.keys(params).length > 0) {
+      if(method === 'PUT' || method === 'POST') {
         // Escape unicode
         reqBody = JSON.stringify(params).replace(/[\u0080-\uFFFF]/g, (m) => {
           return '\\u' + ('0000' + m.charCodeAt(0).toString(16)).slice(-4);
@@ -86,11 +85,11 @@ class Ovh {
       }
     }
 
-    if (path.indexOf('/auth') == -1) {
+    if(path.indexOf('/auth') == -1) {
       query.headers['X-Ovh-Timestamp'] = Math.round(Date.now() / 1000) + this.apiTimeDiff;
 
       // Sign request
-      if (typeof(this.consumerKey) === 'string') {
+      if(typeof (this.consumerKey) === 'string') {
         query.headers['X-Ovh-Consumer'] = this.consumerKey;
         query.headers['X-Ovh-Signature'] = this.signRequest(
           method, endpoint,
@@ -106,8 +105,8 @@ class Ovh {
       return response;
     } catch(err) {
       if(err.res)
-        err = await drain(err.res);
-      console.log("" + err);
+        err.res = await drain(err.res);
+      console.err(err.res || err);
       throw `API failure for ${path}`;
     }
   }
