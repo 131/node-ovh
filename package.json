@@ -6,8 +6,8 @@
   "author": "Francois Leurent <131.js@cloudyks.org>",
   "license": "MIT",
   "keywords": [
-    "OVH",
-    "RunAbove",
+    "swift",
+    "ovh",
     "API",
     "REST",
     "api.ovh.com"
@@ -15,7 +15,7 @@
   "main": "./index.js",
   "scripts": {
     "preversion": "npm run checkall",
-    "eslint": "eslint index.js services",
+    "eslint": "eslint index.js context.js services",
     "checkall": "npm run eslint",
     "test": "exit 0"
   },

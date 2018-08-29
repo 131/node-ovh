@@ -1,5 +1,5 @@
-This is an es7 async/await designed wrapper of OVH API.
-The easiest way to use the [OVH.com](http://ovh.com) APIs in your [node.js](http://nodejs.org/) applications.
+This is an es7 async/await openstack swift client API.
+
 
 [![NPM Version](https://img.shields.io/npm/v/ovh-es.svg?style=flat)](https://www.npmjs.org/package/ovh-es)
 [![Build Status](https://img.shields.io/travis/131/node-ovh.svg?style=flat)](http://travis-ci.org/131/node-ovh)
@@ -33,16 +33,16 @@ $ npm install ovh-es
 "use strict";
 
 const fs = require('fs');
-const OVHStorage = require('ovh-es/services/object-store');
+const Context = require('ovh-es/context');
+const storage = require('ovh-es/services/object-store');
 const pipe = require('nyks/stream/pipe');
 const config = require('./credentials');
 
 
 class foo {
   async run(){
-    var storage = new OVHStorage(config);
     // init token
-    var ctx = await storage.getCtx();
+    var ctx = await Context.build(config);
 
     var files = await storage.toggleMode(ctx, 'mediaprivate', ".r:*,.rlistings");
     var headers = await storage.showContainer(ctx, 'mediaprivate');

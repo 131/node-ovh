@@ -1,11 +1,7 @@
 'use strict';
 
-const url    = require('url');
 const fs     = require('fs');
 
-const get       = require('mout/object/get');
-const rtrim     = require('mout/string/rtrim');
-const reindex   = require('nyks/collection/reindex');
 
 
 const promisify = require('nyks/function/promisify');
@@ -15,58 +11,8 @@ const drain     = require('nyks/stream/drain');
 
 class OVHStorage {
 
-  constructor(config) {
-    this.config = Object.assign({
-      authURL :  'https://auth.cloud.ovh.net/v2.0',
-      region :   'GRA3',
-    }, config);
-  }
 
-
-  async getCtx() {
-    var json = {
-      auth : {
-        passwordCredentials : {
-          username : this.config.username,
-          password : this.config.password
-        },
-        tenantId : this.config.tenantId
-      }
-    };
-
-    var query = {
-      ...url.parse(this.config.authURL + '/tokens'),
-      headers :  { 'Accept' : 'application/json' },
-      json : true,
-    };
-
-    var res = await request(query, json);
-    var payload = JSON.parse(await drain(res));
-
-
-    var token           = get(payload, 'access.token');
-    var endpoints = get(payload, 'access.serviceCatalog').reduce((full, catalog) => { //, k
-      var publicUrl = get(reindex(catalog.endpoints, 'region'), `${this.config.region}.publicURL`);
-      if(publicUrl)
-        full[catalog.type]  = rtrim(publicUrl, '/') + '/'; //enforce trailing /
-      return full;
-    }, {});
-
-
-    var endpoint = (what, path) => url.resolve(endpoints[what], path);
-    var headers  = {
-      "X-Auth-Token" : token.id,
-      "Accept" : "application/json"
-    };
-
-    query = (what, path, xtra) => ({...url.parse(endpoint(what, path)), headers, ...xtra});
-
-    return {token, endpoints, endpoint, headers, query};
-  }
-
-
-
-  async createContainer(ctx, container) {
+  static async createContainer(ctx, container) {
     var query = ctx.query('object-store', container, {
       method :   'PUT',
     });
@@ -76,18 +22,18 @@ class OVHStorage {
   }
 
 
-  async download(ctx, path) {
+  static async download(ctx, path) {
     var query = ctx.query('object-store', path);
     var res = await request(query);
     return res;
   }
 
-  async putFile(ctx, localfile, path, headers) {
+  static async putFile(ctx, localfile, path, headers) {
     var stream = fs.createReadStream(localfile);
-    return this.putStream(ctx, stream, path, headers);
+    return OVHStorage.putStream(ctx, stream, path, headers);
   }
 
-  async putStream(ctx, stream, path) {
+  static async putStream(ctx, stream, path) {
     var query = ctx.query('object-store', path, {
       method :   'PUT',
     });
@@ -97,7 +43,7 @@ class OVHStorage {
   }
 
 
-  async deleteFile(ctx, path) {
+  static async deleteFile(ctx, path) {
     var query = ctx.query('object-store', path, {
       method :   'DELETE',
     });
@@ -106,7 +52,7 @@ class OVHStorage {
     return res.headers;
   }
 
-  async toggleMode(ctx, container, mode) {
+  static async toggleMode(ctx, container, mode) {
     var query = ctx.query('object-store',  container, {
       method :   'POST',
       headers : {
@@ -119,14 +65,14 @@ class OVHStorage {
     return res.headers;
   }
 
-  async getFileList(ctx, container) {
+  static async getFileList(ctx, container) {
     var query = ctx.query('object-store',  container);
     var res  = await request(query);
     var body = JSON.parse(await drain(res));
     return body;
   }
 
-  async showContainer(ctx, container) {
+  static async showContainer(ctx, container) {
     var query = ctx.query('object-store',  container, {
       method :   'HEAD',
     });
