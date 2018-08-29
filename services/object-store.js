@@ -47,7 +47,8 @@ class OVHStorage {
     var token           = get(payload, 'access.token');
     var endpoints = get(payload, 'access.serviceCatalog').reduce((full, catalog) => { //, k
       var publicUrl = get(reindex(catalog.endpoints, 'region'), `${this.config.region}.publicURL`);
-      full[catalog.type]  = rtrim(publicUrl, '/') + '/'; //enforce trailing /
+      if(publicUrl)
+        full[catalog.type]  = rtrim(publicUrl, '/') + '/'; //enforce trailing /
       return full;
     }, {});
 
