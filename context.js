@@ -56,8 +56,8 @@ class Context  {
     };
 
     query = (what, path, xtra) => ({...url.parse(endpoint(what, path)), headers, ...xtra});
-
-    return {token, endpoints, endpoint, headers, query};
+    let containerCache = {};
+    return {token, endpoints, endpoint, headers, query, containerCache};
   }
 
 }

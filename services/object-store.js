@@ -1,12 +1,15 @@
 'use strict';
 
-const fs     = require('fs');
-
+const path = require('path');
+const fs   = require('fs');
+const url  = require('url');
 
 
 const promisify = require('nyks/function/promisify');
 const request   = promisify(require('nyks/http/request'));
 const drain     = require('nyks/stream/drain');
+const hmac = require('nyks/crypto/hmac');
+const encode = require('querystring').encode;
 
 
 class OVHStorage {
@@ -32,6 +35,34 @@ class OVHStorage {
     var stream = fs.createReadStream(localfile);
     return OVHStorage.putStream(ctx, stream, path, headers);
   }
+
+
+  //mostly sync, but we might need to lookup the container key
+  static async tempURL(ctx, container, file_path, method, duration) {
+
+    if(!ctx.containerCache[container])
+      ctx.containerCache[container] = await OVHStorage.showContainer(ctx, container);
+
+    if(!duration)
+      duration = 86400;
+
+    let secret = ctx.containerCache[container]['x-container-meta-temp-url-key'];
+
+    if(!secret)
+      throw `Invalid container '${container}' configuration (missing secret key)`;
+
+    let dst = ctx.query('object-store', path.join(container, file_path));
+    let expires = Math.floor(Date.now() / 1000 + duration);
+
+    let hmac_body = [method || 'GET', expires, dst.path].join("\n");
+    console.log(hmac_body, secret);
+
+    var sig = hmac('sha1', secret, hmac_body);
+
+    dst.search = encode({temp_url_sig : sig, temp_url_expires : expires});
+    return url.format(dst);
+  }
+
 
   static async putStream(ctx, stream, path) {
     var query = ctx.query('object-store', path, {
@@ -71,6 +102,8 @@ class OVHStorage {
     var body = JSON.parse(await drain(res));
     return body;
   }
+
+
 
   static async showContainer(ctx, container) {
     var query = ctx.query('object-store',  container, {
