@@ -57,9 +57,8 @@ describe("initial test suite", function() {
     var body = "ping";
     var hash = md5(body);
     var tmp = bl(body);
-    var headers = {etag : 'nope' };
     try {
-      var res = await OVHStorage.putStream(ctx, tmp, path.join(container, "/ping"), headers);
+      var res = await OVHStorage.putStream(ctx, tmp, path.join(container, "/ping"), 'nope');
       expect().to.fail("Never here");
     } catch(err) {
       expect(err.res.statusCode).to.be(422); //Unprocessable Entity

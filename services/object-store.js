@@ -84,6 +84,9 @@ class OVHStorage {
 
 
   static async putStream(ctx, stream, path, headers) {
+    if(typeof headers == "string")
+      headers = { etag : headers };
+
     log.info("putStream to", path, headers);
     var query = ctx.query('object-store', path, {
       method :   'PUT',
