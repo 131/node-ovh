@@ -6,11 +6,28 @@ const url  = require('url');
 
 
 const promisify = require('nyks/function/promisify');
-const request   = promisify(require('nyks/http/request'));
+const prequest  = promisify(require('nyks/http/request'));
 const drain     = require('nyks/stream/drain');
 const hmac = require('nyks/crypto/hmac');
 const encode = require('querystring').encode;
+const debug  = require('debug');
 
+const log = {
+  debug : debug('ovh-es:object-store:debug'),
+  info  : debug('ovh-es:object-store:info'),
+  error : debug('ovh-es:object-store:error'),
+};
+
+
+const request = async (...args) => {
+  try {
+    return await prequest(...args);
+  } catch(err) {
+    if(err.res)
+      err.res = {message : String(await drain(err.res)), headers : err.res.headers, statusCode : err.res.statusCode};
+    throw err;
+  }
+};
 
 class OVHStorage {
 
@@ -19,6 +36,7 @@ class OVHStorage {
     var query = ctx.query('object-store', container, {
       method :   'PUT',
     });
+
     var res = await request(query);
     await drain(res);
     return res.headers;
@@ -32,6 +50,7 @@ class OVHStorage {
   }
 
   static async putFile(ctx, localfile, path, headers) {
+    log.info("putFile %s to %s", localfile, path, headers);
     var stream = fs.createReadStream(localfile);
     return OVHStorage.putStream(ctx, stream, path, headers);
   }
@@ -64,9 +83,11 @@ class OVHStorage {
   }
 
 
-  static async putStream(ctx, stream, path) {
+  static async putStream(ctx, stream, path, headers) {
+    log.info("putStream to", path, headers);
     var query = ctx.query('object-store', path, {
       method :   'PUT',
+      headers,
     });
     var res = await request(query, stream);
     await drain(res);

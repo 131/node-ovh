@@ -10,6 +10,15 @@ const promisify = require('nyks/function/promisify');
 const request   = promisify(require('nyks/http/request'));
 const drain     = require('nyks/stream/drain');
 
+const debug  = require('debug');
+
+const log = {
+  debug : debug('ovh-es:debug'),
+  info  : debug('ovh-es:info'),
+  error : debug('ovh-es:error'),
+};
+
+
 
 class Context  {
 
@@ -48,14 +57,24 @@ class Context  {
       return full;
     }, {});
 
+    var endpoint = (what, path) => {
+      if(!endpoints[what])
+        throw `Cannot lookup endpoint for service '${what}'`;
+      return url.resolve(endpoints[what], path);
+    };
 
-    var endpoint = (what, path) => url.resolve(endpoints[what], path);
     var headers  = {
       "X-Auth-Token" : token.id,
       "Accept" : "application/json"
     };
 
-    query = (what, path, xtra) => ({...url.parse(endpoint(what, path)), headers, ...xtra});
+    query = (what, path, xtra) => {
+      var target = {...url.parse(endpoint(what, path)), ...xtra};
+      target.headers  = {...headers, ...target.headers};
+      log.debug("Query", target);
+      return target;
+    };
+
     let containerCache = {};
     return {token, endpoints, endpoint, headers, query, containerCache};
   }
