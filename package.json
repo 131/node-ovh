@@ -29,6 +29,7 @@
     "url": "https://github.com/131/node-ovh/issues"
   },
   "devDependencies": {
+    "bl": "^1.2.0",
     "debug": "^2.3.2",
     "eslint-plugin-ivs": "^1.3.0",
     "expect.js": "^0.3.1",
