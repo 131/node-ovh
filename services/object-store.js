@@ -43,8 +43,8 @@ class OVHStorage {
   }
 
 
-  static async download(ctx, path) {
-    var query = ctx.query('object-store', path);
+  static async download(ctx, path, xtra) {
+    var query = ctx.query('object-store', path, xtra);
     var res = await request(query);
     return res;
   }
