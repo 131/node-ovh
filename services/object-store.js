@@ -74,7 +74,6 @@ class OVHStorage {
     let expires = Math.floor(Date.now() / 1000 + duration);
 
     let hmac_body = [method || 'GET', expires, dst.path].join("\n");
-    console.log(hmac_body, secret);
 
     var sig = hmac('sha1', secret, hmac_body);
 
