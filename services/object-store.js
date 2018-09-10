@@ -73,7 +73,7 @@ class OVHStorage {
     let dst = ctx.query('object-store', path.join(container, file_path));
     let expires = Math.floor(Date.now() / 1000 + duration);
 
-    let hmac_body = [method || 'GET', expires, dst.path].join("\n");
+    let hmac_body = [method || 'GET', expires, decodeURIComponent(dst.path)].join("\n");
 
     var sig = hmac('sha1', secret, hmac_body);
 
@@ -106,18 +106,23 @@ class OVHStorage {
     return res.headers;
   }
 
-  static async toggleMode(ctx, container, mode) {
-    var query = ctx.query('object-store',  container, {
-      method :   'POST',
-      headers : {
-        'X-Container-Read' : mode
-      }
-    });
+  static async updateContainer(ctx, container, headers) {
+    var query = ctx.query('object-store',  container, {method : 'POST', headers});
 
     var res = await request(query);
     await drain(res); //make sure to close
     return res.headers;
   }
+
+  static async toggleMode(ctx, container, mode) {
+    return OVHStorage.updateContainer(ctx, container, {'X-Container-Read' : mode});
+  }
+
+
+  static async tempKey(ctx, container, key) {
+    return OVHStorage.updateContainer(ctx, container, {'X-Container-Meta-Temp-URL-Key' : key});
+  }
+
 
   static async getFileList(ctx, container) {
     var query = ctx.query('object-store',  container);

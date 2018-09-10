@@ -106,7 +106,7 @@ class Ovh {
     } catch(err) {
       if(err.res)
         err.res = await drain(err.res);
-      console.err(err.res || err);
+      console.error(err.res || err);
       throw `API failure for ${path}`;
     }
   }
