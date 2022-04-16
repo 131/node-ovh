@@ -2,12 +2,12 @@
 
 const url    = require('url');
 
-const get       = require('mout/object/get');
+const dive      = require('nyks/object/dive');
+
 const rtrim     = require('mout/string/rtrim');
 const reindex   = require('nyks/collection/reindex');
 
-const promisify = require('nyks/function/promisify');
-const request   = promisify(require('nyks/http/request'));
+const request   = require('nyks/http/request');
 const drain     = require('nyks/stream/drain');
 
 const debug  = require('debug');
@@ -24,38 +24,54 @@ class Context  {
 
   static async build(credentials) {
     var config = {
-      authURL :  'https://auth.cloud.ovh.net/v2.0',
-      region :   'GRA3',
+      authURL :  'https://auth.cloud.ovh.net/v3',
+      region :   'GRA',
       ...credentials
     };
 
-    var json = {
-      auth : {
-        passwordCredentials : {
-          username : config.username,
-          password : config.password
-        },
-        tenantId : config.tenantId
+    var json = { auth : {
+      identity : {
+        methods : ['password'],
+        password : {
+          user : {
+            domain : {
+              id : 'default'
+            },
+            name : config.username,
+            password : config.password
+          }
+        }
+      },
+      scope : {
+        project : {
+          domain : {
+            id : 'default'
+          },
+          name : config.tenantName,
+          id : config.tenantId
+        }
       }
-    };
-
+    }};
     var query = {
-      ...url.parse(config.authURL + '/tokens'),
+      ...url.parse(config.authURL + '/auth/tokens'),
       headers :  { 'Accept' : 'application/json' },
       json : true,
     };
 
     var res = await request(query, json);
+    if(!(res.statusCode >= 200 && res.statusCode < 300))
+      throw `Invalid swift credentials`;
+
     var payload = JSON.parse(await drain(res));
 
-
-    var token           = get(payload, 'access.token');
-    var endpoints = get(payload, 'access.serviceCatalog').reduce((full, catalog) => { //, k
-      var publicUrl = get(reindex(catalog.endpoints, 'region'), `${config.region}.publicURL`);
+    let token = res.headers['x-subject-token'];
+    var endpoints = dive(payload, 'token.catalog').reduce((full, catalog) => { //, k
+      var publicUrl = dive(reindex(catalog.endpoints, 'region'), `${config.region}.url`);
       if(publicUrl)
-        full[catalog.type]  = rtrim(publicUrl, '/') + '/'; //enforce trailing /
+        full[catalog.type]  = rtrim(publicUrl, '/');
       return full;
     }, {});
+
 
     var endpoint = (what, path) => {
       if(!endpoints[what])

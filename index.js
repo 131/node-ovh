@@ -3,20 +3,24 @@
 const url     = require('url');
 const querystring = require('querystring');
 
-const promisify  = require('nyks/function/promisify');
-const request  = promisify(require('nyks/http/request'));
+const request  = require('nyks/http/request');
 const sha1    = require('nyks/crypto/sha1');
 const drain   = require('nyks/stream/drain');
+const debug = require('debug');
+
+const logger = {
+  info : debug('ovh-es:info'),
+};
 
 
 
 class Ovh {
 
-  constructor(params) {
+  constructor(params = {}) {
 
-    this.appKey = params.appKey;
-    this.appSecret = params.appSecret;
-    this.consumerKey = params.consumerKey || null;
+    this.appKey = params.appKey        || process.env['OVH_APPLICATION_KEY'];
+    this.appSecret = params.appSecret  || process.env['OVH_APPLICATION_SECRET'];
+    this.consumerKey = params.consumerKey  || process.env['OVH_CONSUMER_KEY'];
 
     this.timeout = params.timeout;
     this.apiTimeDiff = params.apiTimeDiff || null;
@@ -30,13 +34,19 @@ class Ovh {
   }
 
 
-  async request(method, path, params) {
+  static build(params = {}) {
+    return new Ovh(params);
+  }
+
+
+  async request(method, path, params = {}) {
 
 
     // Time drift
     if(!this.apiTimeDiff) {
       let req = await request('https://' + this.host + this.basePath  + '/auth/time');
       let time = JSON.parse(await drain(req));
+
       this.apiTimeDiff = time - Math.round(Date.now() / 1000);
     }
 
@@ -52,9 +62,8 @@ class Ovh {
       }
     }
 
-    var endpoint = 'https://' + this.host + this.basePath + path;
 
-    let query = Object.assign(url.parse(endpoint), {
+    let query = Object.assign(url.parse('https://' + this.host + this.basePath + path), {
       method,
       headers : {
         'Content-Type' : 'application/json',
@@ -68,7 +77,7 @@ class Ovh {
         delete params[k];
     }
 
-    let reqBody = null;
+    let reqBody = "";
 
     if(typeof (params) === 'object' && Object.keys(params).length > 0) {
       if(method === 'PUT' || method === 'POST') {
@@ -81,9 +90,11 @@ class Ovh {
         query.headers['Content-Length'] = reqBody.length;
       }
       else {
-        query.path += '?' + querystring.stringify(params);
+        query.search = '?' + querystring.stringify(params); // used by url.format, for signature
       }
     }
+
+    var endpoint = url.format(query);
 
     if(path.indexOf('/auth') == -1) {
       query.headers['X-Ovh-Timestamp'] = Math.round(Date.now() / 1000) + this.apiTimeDiff;
@@ -101,12 +112,15 @@ class Ovh {
     try {
       let req = await request(query, reqBody);
       let body = await drain(req);
+      
+      if(req.statusCode != 200)
+        throw `Invalid response code ${req.statusCode}`;
+
       var response = JSON.parse(body);
       return response;
     } catch(err) {
       if(err.res)
         err.res = await drain(err.res);
-      console.error(err.res || err);
       throw `API failure for ${path}`;
     }
   }
@@ -125,6 +139,4 @@ class Ovh {
 
 }
 
-module.exports = function(params) {
-  return new Ovh(params);
-};
+module.exports = Ovh;
