@@ -6,11 +6,7 @@ const querystring = require('querystring');
 const request  = require('nyks/http/request');
 const sha1    = require('nyks/crypto/sha1');
 const drain   = require('nyks/stream/drain');
-const debug = require('debug');
 
-const logger = {
-  info : debug('ovh-es:info'),
-};
 
 
 
@@ -53,7 +49,7 @@ class Ovh {
     if(path.indexOf('{') != -1) {
       let newPath = path;
       for(let paramKey in params) {
-        if(params.hasOwnProperty(paramKey)) {
+        if(Object.hasOwn(params, paramKey)) {
           newPath = path.replace('{' + paramKey + '}', params[paramKey]);
           if(newPath !== path)
             delete params[paramKey];
@@ -112,16 +108,14 @@ class Ovh {
     try {
       let req = await request(query, reqBody);
       let body = await drain(req);
-      
+
       if(req.statusCode != 200)
-        throw `Invalid response code ${req.statusCode}`;
+        throw Object.assign(new Error(`Invalid response code`), {code : req.statusCode, body  : String(body)});
 
       var response = JSON.parse(body);
       return response;
     } catch(err) {
-      if(err.res)
-        err.res = await drain(err.res);
-      throw `API failure for ${path}`;
+      throw Object.assign(new Error(`API failure for ${path}`), {source : err});
     }
   }
 
